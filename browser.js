@@ -1,5 +1,6 @@
 import puppeteer from 'puppeteer';
 
+const HEADLESS = true;
 const MAX_PAGE = 5;
 const MAX_BROWSER = 3;
 const emailInputSelector = '#loginform input#email';
@@ -10,7 +11,7 @@ const acceptButtonSelector = 'form button[type=submit]';
 export default class Browser {
 
 	static async newBrowser() {
-		const browser = await puppeteer.launch({ headless: false });
+		const browser = await puppeteer.launch({ headless: HEADLESS });
 		return browser;
 	}
 
@@ -126,11 +127,11 @@ export default class Browser {
 				  newPage.on('close', async () => {
 				    const token = await page.evaluate(() => {
 				      return window.responseLogin.authResponse.accessToken;
-				    });
+						}).catch (error => console.log('error in newPage.on("close") event'));
 
-				    await page.close().catch(error => console.error(error));
+				    await page.close().catch(error => console.log('error to close page'));
 						
-				    resolve(token);
+						resolve({ saId: inforAccount.saId, saToken: token });
 				  })
 
 				  const email = await Browser.waitForSelector(newPage, emailInputSelector, [page, newPage]);
@@ -139,12 +140,17 @@ export default class Browser {
 				  await password.type(inforAccount.password || 'test');
 				  const buttonLogin = await Browser.waitForSelector(newPage, loginButtonSelector, [page, newPage]);
 				  await buttonLogin.click();
+					const loginError = await newPage.waitForSelector('#error_box.login_error_box').catch(e => console.log('Error to get Error Login box'));
+					// console.log('Login-Error-------------', loginError);
+					if(!loginError) {
+						const buttonAccept = await newPage.waitForSelector(acceptButtonSelector).catch(error => console.log('Error to get buttonAccept'));
+						if(buttonAccept)
+							await buttonAccept.click().catch(error => console.log('Error to click buttonAccept'));
+						await newPage.close().catch(error => console.log('error to close newPage'));
+					} else {
+						await Browser.closeMutilBrowserAndPage([page, newPage]).catch(error => console.log('error to close mutil page and newpage'));
+					}
 
-				  const buttonSubmit = await newPage.waitForSelector(acceptButtonSelector).catch(error => console.error(error));
-				  // const buttonSubmit = await Browser.waitForSelector(newPage, acceptButtonSelector, [browser, page, newPage]);
-
-				  await newPage.close().catch(error => console.error(error));                 
-				  
 				} 
 			} else {
 				await closeMutilBrowserAndPage([page]);
@@ -163,7 +169,7 @@ export default class Browser {
 		const pageForTokens = inforAccounts.map(e => Browser.createPageToken(browser, e));
 
 		return Promise.all(pageForTokens).then(async res => {
-			await browser.close().catch(error => console.log(error));
+			await browser.close().catch(error => console.log('error to close browser'));
 
 			return res;
 		});
@@ -176,14 +182,14 @@ export default class Browser {
 			return ;
 		}
 
-		const browserForTokens = inforAccounts.map(e => Browser.createBrowserToken(browser, e));
+		const browserForTokens = inforAccounts.map(e => Browser.createBrowserToken(e));
 
 		return Promise.all(browserForTokens);
 	}
 
 	static closeMutilBrowserAndPage(arr) {
 		if(arr) {
-			const arrClose = arr.map(e => e.close().catch(error => {console.log(error)}));
+			const arrClose = arr.map(e => e.close().catch(error => {console.log('error to close mutil Browser and Page')}));
 
 			return Promise.all(arrClose);
 		}
@@ -193,8 +199,6 @@ export default class Browser {
 		return page.waitForSelector(selector)
 		.catch(async error => {
 			await Browser.closeMutilBrowserAndPage(arr);
-
-			// throw new Error(error);
 		});
 	}
 

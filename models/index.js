@@ -5,6 +5,7 @@ const models = {}
 
 const modules = [
   require('./userModel'),
+  require('./socialAccountModel'),
 ];
 
 // Initialize models
