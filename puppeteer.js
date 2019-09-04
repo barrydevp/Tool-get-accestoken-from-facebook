@@ -1,65 +1,38 @@
 import puppeteer from 'puppeteer';
 
-const getToken = (data) => {
-  $(document).ready(() => {
-    FB.login((responseLogin) => {
-      if (responseLogin.authResponse) {
-        // const { authResponse: { accessToken } } = responseLogin;
-        console.log('response', responseLogin);
-      }
-    }, {
-        scope: 'email',
-        return_scopes: true
-      });
-  });
-};
-
-export default async (url) => {
+export default async (url, option) => {
   const browser = await puppeteer.launch({ headless: false });       // run browser
   const page = await browser.newPage();           // open new tab
   await page.goto(url);            // go to site.com       
   await page.evaluate(() => console.log(`url is ${location.href}`));
 
-  const newPagePromise = new Promise(x => browser.once('targetcreated', target => x(target.page())));
+  const newPagePromise = new Promise(x => page.once('popup', target => {
+    // console.log(target);
+    x(target);
+  }));
   let newPage = await newPagePromise;           // declare new tab /window, 
 
-  await newPage.evaluate(() => {
-    const tryToLogin = (infor) => {
-      console.log("test");
-      return () => {
-        const email = document.querySelector('#loginform input#email');
-        const password = document.querySelector('#loginform input#pass');
-        const submit = document.querySelector('#loginform #buttons input');
+  newPage.on('close', async () => {
 
-        // fill input field
-        email.value = infor.email;
-        password.value = infor.password;
-        submit.click();
-      }
-    }
+    const responseLogin = await page.evaluate(() => {
+      return window.responseLogin;
+    });
 
-    console.log(`url is ${location.href}`);
-    window.onload = tryToLogin({ email: '0944703687', password: 'haihoak13' });
+    console.log(responseLogin);
   });
+  const email = await newPage.waitForSelector('#loginform input#email').catch(error => console.error(error));
+  await email.type('0944703687');
+  const password = await newPage.waitForSelector('#loginform input#pass').catch(error => console.error(error));
+  await password.type('haihoak13');
+  const buttonLogin = await newPage.waitForSelector('#loginform #buttons input').catch(error => console.error(error));
+  await buttonLogin.click();
 
-  await newPage.evaluateOnNewDocument(() => {
-    console.log(`url2 is ${location.href}`);
-    window.onload = () => {
-      const submit = document.querySelector('form button[type=submit]');
-      submit.click();
-    };
-  });
+  console.log("Click!");
+  const buttonSubmit = await newPage.waitForSelector('form button[type=submit]').catch(error => console.error(error));
 
-  const responseLogin = await page.evaluate(() => {
-    console.log('hello');
-    
-    return window.responseLogin;
-  });
- 
-  console.log(responseLogin);
-  await newPage.close();                   
-  await page.close();                   
+  await newPage.close().catch(error => console.error(error));                 
+  // await page.close().catch(error => console.error(error));                  
 
-  await browser.close();
+  // await browser.close().catch(error => console.error(error));
 }
 

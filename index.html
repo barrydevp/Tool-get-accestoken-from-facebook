@@ -14,7 +14,7 @@
       FB.login((responseLogin) => {
         if (responseLogin.authResponse) {
           // const { authResponse: { accessToken } } = responseLogin;
-          // console.log('response', responseLogin);
+          console.log('response', responseLogin);
           const p = document.createElement('p');
           p.innerText = JSON.stringify(responseLogin.authResponse);
           window.responseLogin = responseLogin;
