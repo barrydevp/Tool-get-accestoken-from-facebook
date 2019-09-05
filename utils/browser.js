@@ -1,19 +1,12 @@
 import puppeteer from 'puppeteer';
+import config from '../config';
 
-const HEADLESS = false;
-const MAX_PAGE = 5;
-const MAX_BROWSER = 3;
-const emailInputSelector = '#loginform input#email';
-const passwordInputSelector = '#loginform input#pass';
-const loginButtonSelector = '#loginform #buttons input';
-const acceptButtonSelector = 'form button[type=submit]';
-const checkButtonSelector = '#checkpointBottomBar #checkpointSubmitButton';
-const ERROR_BOX_SELECTOR = '#error_box.login_error_box';
+console.log(config);
 
 export default class Browser {
 
 	static async newBrowser() {
-		const browser = await puppeteer.launch({ headless: HEADLESS });
+		const browser = await puppeteer.launch({ headless: config.TURN_HEADLESS === 'true' });
 		return browser;
 	}
 
@@ -70,14 +63,14 @@ export default class Browser {
 				    resolve(token);
 				  })
 
-				  const email = await Browser.waitForSelector(newPage, emailInputSelector, [browser, page, newPage]);
+				  const email = await Browser.waitForSelector(newPage, config.EMAIL_INPUT_SELECTOR, [browser, page, newPage]);
 				  await email.type(inforAccount.email || 'test');
-				  const password = await Browser.waitForSelector(newPage, passwordInputSelector, [browser, page, newPage]);
+				  const password = await Browser.waitForSelector(newPage, config.PASSWORD_INPUT_SELECTOR, [browser, page, newPage]);
 				  await password.type(inforAccount.password || 'test');
-				  const buttonLogin = await Browser.waitForSelector(newPage, loginButtonSelector, [browser, page, newPage]);
+				  const buttonLogin = await Browser.waitForSelector(newPage, config.LOGIN_BUTTON_SELECTOR, [browser, page, newPage]);
 				  await buttonLogin.click();
 
-				  const buttonSubmit = await newPage.waitForSelector(acceptButtonSelector).catch(error => console.error(error));
+				  const buttonSubmit = await newPage.waitForSelector(config.ACCEPT_BUTTON_SELECTOR).catch(error => console.error(error));
 
 				  await newPage.close().catch(error => console.error(error));                 
 				  
@@ -118,11 +111,11 @@ export default class Browser {
 						}
 				  })
 
-				  const email = await Browser.waitForSelector(newPage, emailInputSelector, [page, newPage]);
+				  const email = await Browser.waitForSelector(newPage, config.EMAIL_INPUT_SELECTOR, [page, newPage]);
 				  await email.type(inforAccount.email);
-				  const password = await Browser.waitForSelector(newPage, passwordInputSelector, [page, newPage]);
+				  const password = await Browser.waitForSelector(newPage, config.PASSWORD_INPUT_SELECTOR, [page, newPage]);
 				  await password.type(inforAccount.password);
-				  const buttonLogin = await Browser.waitForSelector(newPage, loginButtonSelector, [page, newPage]);
+				  const buttonLogin = await Browser.waitForSelector(newPage, config.LOGIN_BUTTON_SELECTOR, [page, newPage]);
 				  await buttonLogin.click();
 					
 					Browser.handleAfterLogin(page, newPage).catch(error => {
@@ -140,7 +133,7 @@ export default class Browser {
 	
 	static async createBrowserToken(inforAccounts) {
 		const length = inforAccounts.length;
-		if(length > MAX_PAGE){
+		if(length > Number(config.MAX_PAGE)){
 			return ;
 		}
 		const browser = await Browser.newBrowser();
@@ -157,7 +150,7 @@ export default class Browser {
 	static getMultiToken(inforAccounts) {
 		const length = inforAccounts.length;
 
-		if(length > MAX_BROWSER){
+		if (length > Number(config.MAX_BROWSER)){
 			return ;
 		}
 
@@ -175,9 +168,9 @@ export default class Browser {
 	}
 
 	static async handleAfterLogin_old(page, newPage) {
-		const loginError = newPage.waitForSelector(ERROR_BOX_SELECTOR).catch(error => console.log('Error to get Error Login box'));
-		const buttonAccept = newPage.waitForSelector(acceptButtonSelector).catch(error => console.log('Error to get buttonAccept'));
-		const buttonSubmitCheck = newPage.waitForSelector(checkButtonSelector).catch(error => console.log('Error to get buttonSubmitCheck'));
+		const loginError = newPage.waitForSelector(config.ERROR_BOX_SELECTOR).catch(error => console.log('Error to get Error Login box'));
+		const buttonAccept = newPage.waitForSelector(config.ACCEPT_BUTTON_SELECTOR).catch(error => console.log('Error to get buttonAccept'));
+		const buttonSubmitCheck = newPage.waitForSelector(config.CHECK_BUTTON_SELECTOR).catch(error => console.log('Error to get buttonSubmitCheck'));
 
 		const res = await Promise.all([loginError, buttonSubmitCheck, buttonAccept]);
 
@@ -199,20 +192,20 @@ export default class Browser {
 	}
 
 	static async handleAfterLogin(page, newPage) {
-		const loginError = newPage.waitForSelector(ERROR_BOX_SELECTOR).catch(error => console.log('Error to get Error Login box')).then(async res => {
+		const loginError = newPage.waitForSelector(config.ERROR_BOX_SELECTOR).catch(error => console.log('Error to get Error Login box')).then(async res => {
 			if (res) {
 				await Browser.closeMutilBrowserAndPage([page, newPage]).catch(error => console.log('Error to close mutil page and newpage'));
 				throw new Error('Login Error, wrong infor login!');
 			}
 		});
-		const buttonAccept = newPage.waitForSelector(acceptButtonSelector).catch(error => console.log('Error to get buttonAccept')).then(async res => {
+		const buttonAccept = newPage.waitForSelector(config.ACCEPT_BUTTON_SELECTOR).catch(error => console.log('Error to get buttonAccept')).then(async res => {
 			if (res) {
 				await res.click().catch(error => console.log('Error to click buttonAccept'));
 			}
 
 			await newPage.close().catch(error => console.log('Error to close newPage'));
 		});
-		const buttonSubmitCheck = newPage.waitForSelector(checkButtonSelector).catch(error => console.log('Error to get buttonSubmitCheck')).then(async res => {
+		const buttonSubmitCheck = newPage.waitForSelector(config.CHECK_BUTTON_SELECTOR).catch(error => console.log('Error to get buttonSubmitCheck')).then(async res => {
 			if (res) {
 				await Browser.closeMutilBrowserAndPage([page, newPage]).catch(error => console.log('Error to close mutil page and newpage'));
 				throw new Error('Login Succes but occur checkpoint!')

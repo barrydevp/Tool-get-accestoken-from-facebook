@@ -56,7 +56,7 @@ export default {
 		console.log(socialAccounts);
 		const inforAccounts = []
 
-		const MAX_PAGE = 5;
+		const MAX_PAGE = Number(config.MAX_PAGE);
 		let index = -1;
 		socialAccounts.forEach((e, i) => {
 			if (i % 5 === 0) {
