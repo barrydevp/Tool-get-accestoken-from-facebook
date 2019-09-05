@@ -24,45 +24,23 @@ export default class Browser {
 		return page;
 	}
 
-	static async newPage(browser, url, callback) {
-		if(!browser) {
-			browser = await Browser.newBrowser();
-		}
-		
-		const page = await browser.newPage();
+	static async newPage(url, callback, browser) {
+		if (url) {
+			if (!browser) {
+				browser = await Browser.newBrowser();
+			}
 
-			if(url) {
-				await page.goto(url);
+			const page = await browser.newPage();
+			await page.goto(url);
+
+			if (callback) {
 				callback();
 			}
 
 			return page;
-	}
-
-	static async newPage(browser, url) {
-		if(!browser) {
-			browser = await Browser.newBrowser();
-		}
-		
-		const page = await browser.newPage();
-
-			if(url) {
-				await page.goto(url);
-			}
-
-		return page;
-	}	
-
-	static async newPage(url) {
-		const browser = await Browser.newBrowser();
-		
-		const page = await browser.newPage();
-
-		if(url) {
-			await page.goto(url);
 		}
 
-		return page;
+		return await this.newEmptyPage(browser);
 	}
 
 	static async getTokenOnceFull(page, inforAccount) {
@@ -98,7 +76,6 @@ export default class Browser {
 				  await buttonLogin.click();
 
 				  const buttonSubmit = await newPage.waitForSelector(acceptButtonSelector).catch(error => console.error(error));
-				  // const buttonSubmit = await Browser.waitForSelector(newPage, acceptButtonSelector, [browser, page, newPage]);
 
 				  await newPage.close().catch(error => console.error(error));                 
 				  
@@ -116,7 +93,7 @@ export default class Browser {
 				return ;
 			}
 
-			if(inforAccount) {
+			if (inforAccount.email && inforAccount.password) {
 				const page = await browser.newPage();
 
 				if(!page.isClosed()){
@@ -127,28 +104,28 @@ export default class Browser {
 				  newPage.on('close', async () => {
 				    const token = await page.evaluate(() => {
 				      return window.responseLogin.authResponse.accessToken;
-						}).catch (error => console.log('error in newPage.on("close") event'));
+						}).catch (error => console.log('Error in newPage.on("close") event'));
 
-				    await page.close().catch(error => console.log('error to close page'));
+				    await page.close().catch(error => console.log('Error to close page'));
 						
 						resolve({ saId: inforAccount.saId, saToken: token });
 				  })
 
 				  const email = await Browser.waitForSelector(newPage, emailInputSelector, [page, newPage]);
-				  await email.type(inforAccount.email || 'test');
+				  await email.type(inforAccount.email);
 				  const password = await Browser.waitForSelector(newPage, passwordInputSelector, [page, newPage]);
-				  await password.type(inforAccount.password || 'test');
+				  await password.type(inforAccount.password);
 				  const buttonLogin = await Browser.waitForSelector(newPage, loginButtonSelector, [page, newPage]);
 				  await buttonLogin.click();
 					const loginError = await newPage.waitForSelector('#error_box.login_error_box').catch(e => console.log('Error to get Error Login box'));
-					// console.log('Login-Error-------------', loginError);
+
 					if(!loginError) {
 						const buttonAccept = await newPage.waitForSelector(acceptButtonSelector).catch(error => console.log('Error to get buttonAccept'));
 						if(buttonAccept)
 							await buttonAccept.click().catch(error => console.log('Error to click buttonAccept'));
-						await newPage.close().catch(error => console.log('error to close newPage'));
+						await newPage.close().catch(error => console.log('Error to close newPage'));
 					} else {
-						await Browser.closeMutilBrowserAndPage([page, newPage]).catch(error => console.log('error to close mutil page and newpage'));
+						await Browser.closeMutilBrowserAndPage([page, newPage]).catch(error => console.log('Error to close mutil page and newpage'));
 					}
 
 				} 
@@ -202,34 +179,32 @@ export default class Browser {
 		});
 	}
 
-	static test(a) {
-		console.log("testa");
-	}
-
-	static test() {
-		console.log("test");
-	}
-
-	static createPromiseEventOnce(page, callback) {
-		return new Promise(resolve => page.once('popup', res => {
-				callback(res);
-				resolve(res)
-			}
-		));
+	static createPromiseEventOnce(event, page, callback) {
+		return new Promise((resolve, reject) => {
+			if (event && page) {
+				page.once(event, res => {
+					if(callback) {
+						callback(res);
+					}
+				
+					resolve(res)
+				});
+			} else reject(new Error('event or page are undefined'));
+		});
 	}	
 
-	static createPromiseEventOnce(page) {
-		return new Promise(resolve => page.once('popup', res => {
-				resolve(res)
-			}
-		));
-	}
+	static getPopupPage(page, callback) {
+		return new Promise((resolve, reject) => {
+			if(page) {
+				page.once('popup', res => {
+					if (callback) {
+						callback(res);
+					}
 
-	static getPopupPage(page) {
-		return new Promise(resolve => page.once('popup', res => {
-				resolve(res)
-			}
-		));
+					resolve(res)
+				});
+			} else reject(new Error('page is undefined'));
+		});
 	}
 
 }
