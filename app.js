@@ -14,7 +14,8 @@ app.get('/', (req, res, next) => {
 
 app.get('/startGetToken', (req, res, next) => {
   // timer = queue.createCycleJob('get token', service.startGetToken, 40000);
-  timer = setInterval(service.startGetToken, 40000);
+  service.startGetToken;
+  timer = setInterval(service.startGetToken, 30000);
 
   res.send('Start Success');
 });

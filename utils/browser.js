@@ -1,8 +1,6 @@
 import puppeteer from 'puppeteer';
 import config from '../config';
 
-console.log(config);
-
 export default class Browser {
 
 	static async newBrowser() {
@@ -192,9 +190,9 @@ export default class Browser {
 	}
 
 	static async handleAfterLogin(page, newPage) {
-		const loginError = newPage.waitForSelector(config.ERROR_BOX_SELECTOR).catch(error => console.log('Error to get Error Login box')).then(async res => {
+		const loginError = newPage.waitForSelector(config.ERROR_BOX_SELECTOR).catch(error => console.log('Error to get Error Login box')).then(res => {
 			if (res) {
-				await Browser.closeMutilBrowserAndPage([page, newPage]).catch(error => console.log('Error to close mutil page and newpage'));
+				Browser.closeMutilBrowserAndPage([page, newPage]).catch(error => console.log('Error to close mutil page and newpage'));
 				throw new Error('Login Error, wrong infor login!');
 			}
 		});
@@ -205,9 +203,9 @@ export default class Browser {
 
 			await newPage.close().catch(error => console.log('Error to close newPage'));
 		});
-		const buttonSubmitCheck = newPage.waitForSelector(config.CHECK_BUTTON_SELECTOR).catch(error => console.log('Error to get buttonSubmitCheck')).then(async res => {
+		const buttonSubmitCheck = newPage.waitForSelector(config.CHECK_BUTTON_SELECTOR).catch(error => console.log('Error to get buttonSubmitCheck')).then(res => {
 			if (res) {
-				await Browser.closeMutilBrowserAndPage([page, newPage]).catch(error => console.log('Error to close mutil page and newpage'));
+				Browser.closeMutilBrowserAndPage([page, newPage]).catch(error => console.log('Error to close mutil page and newpage'));
 				throw new Error('Login Succes but occur checkpoint!')
 			}
 		});
