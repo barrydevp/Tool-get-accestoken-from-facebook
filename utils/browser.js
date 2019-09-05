@@ -110,7 +110,12 @@ export default class Browser {
 
 				    await page.close().catch(error => console.log('Error to close page'));
 						
-						resolve({ saId: inforAccount.saId, saToken: token, saTokenExpired: 0 });
+						if (token)
+							resolve({ saId: inforAccount.saId, saToken: token, saTokenExpired: 0 });
+						else {
+							console.log('Something wrong when get token from main Page, please try get token again');
+							resolve({ saId: inforAccount.saId, saTokenExpired: 1 });
+						}
 				  })
 
 				  const email = await Browser.waitForSelector(newPage, emailInputSelector, [page, newPage]);

@@ -1,3 +1,3 @@
 import Service from './service'; 
 
-Service.startGetToken().then(res => console.log(res));
+Service.startGetToken().then(res => console.log(res.data));
