@@ -1,12 +1,14 @@
 import puppeteer from 'puppeteer';
 
-const HEADLESS = true;
+const HEADLESS = false;
 const MAX_PAGE = 5;
 const MAX_BROWSER = 3;
 const emailInputSelector = '#loginform input#email';
 const passwordInputSelector = '#loginform input#pass';
 const loginButtonSelector = '#loginform #buttons input';
 const acceptButtonSelector = 'form button[type=submit]';
+const checkButtonSelector = '#checkpointBottomBar #checkpointSubmitButton';
+const ERROR_BOX_SELECTOR = '#error_box.login_error_box';
 
 export default class Browser {
 
@@ -108,7 +110,7 @@ export default class Browser {
 
 				    await page.close().catch(error => console.log('Error to close page'));
 						
-						resolve({ saId: inforAccount.saId, saToken: token });
+						resolve({ saId: inforAccount.saId, saToken: token, saTokenExpired: 0 });
 				  })
 
 				  const email = await Browser.waitForSelector(newPage, emailInputSelector, [page, newPage]);
@@ -117,16 +119,11 @@ export default class Browser {
 				  await password.type(inforAccount.password);
 				  const buttonLogin = await Browser.waitForSelector(newPage, loginButtonSelector, [page, newPage]);
 				  await buttonLogin.click();
-					const loginError = await newPage.waitForSelector('#error_box.login_error_box').catch(e => console.log('Error to get Error Login box'));
-
-					if(!loginError) {
-						const buttonAccept = await newPage.waitForSelector(acceptButtonSelector).catch(error => console.log('Error to get buttonAccept'));
-						if(buttonAccept)
-							await buttonAccept.click().catch(error => console.log('Error to click buttonAccept'));
-						await newPage.close().catch(error => console.log('Error to close newPage'));
-					} else {
-						await Browser.closeMutilBrowserAndPage([page, newPage]).catch(error => console.log('Error to close mutil page and newpage'));
-					}
+					
+					Browser.handleAfterLogin(page, newPage).catch(error => {
+						console.log(error.message);
+						resolve({ saId: inforAccount.saId, saTokenExpired: 3, saTokenExpiredDescription: error.message });
+					});
 
 				} 
 			} else {
@@ -135,7 +132,7 @@ export default class Browser {
 			}
 		});
 	}
-
+	
 	static async createBrowserToken(inforAccounts) {
 		const length = inforAccounts.length;
 		if(length > MAX_PAGE){
@@ -170,6 +167,54 @@ export default class Browser {
 
 			return Promise.all(arrClose);
 		}
+	}
+
+	static async handleAfterLogin_old(page, newPage) {
+		const loginError = newPage.waitForSelector(ERROR_BOX_SELECTOR).catch(error => console.log('Error to get Error Login box'));
+		const buttonAccept = newPage.waitForSelector(acceptButtonSelector).catch(error => console.log('Error to get buttonAccept'));
+		const buttonSubmitCheck = newPage.waitForSelector(checkButtonSelector).catch(error => console.log('Error to get buttonSubmitCheck'));
+
+		const res = await Promise.all([loginError, buttonSubmitCheck, buttonAccept]);
+
+		if(res[0]) {
+			await Browser.closeMutilBrowserAndPage([page, newPage]).catch(error => console.log('Error to close mutil page and newpage'));
+			throw new Error('Login Error, wrong infor login!')
+		} else {
+			if (res[1]) {
+				await Browser.closeMutilBrowserAndPage([page, newPage]).catch(error => console.log('Error to close mutil page and newpage'));
+				throw new Error('Login Succes but occur checkpoint!')
+			} else {
+				if (res[2]) {
+					await buttonAccept.click().catch(error => console.log('Error to click buttonAccept'));
+				}
+
+				await newPage.close().catch(error => console.log('Error to close newPage'));
+			}
+		}
+	}
+
+	static async handleAfterLogin(page, newPage) {
+		const loginError = newPage.waitForSelector(ERROR_BOX_SELECTOR).catch(error => console.log('Error to get Error Login box')).then(async res => {
+			if (res) {
+				await Browser.closeMutilBrowserAndPage([page, newPage]).catch(error => console.log('Error to close mutil page and newpage'));
+				throw new Error('Login Error, wrong infor login!');
+			}
+		});
+		const buttonAccept = newPage.waitForSelector(acceptButtonSelector).catch(error => console.log('Error to get buttonAccept')).then(async res => {
+			if (res) {
+				await res.click().catch(error => console.log('Error to click buttonAccept'));
+			}
+
+			await newPage.close().catch(error => console.log('Error to close newPage'));
+		});
+		const buttonSubmitCheck = newPage.waitForSelector(checkButtonSelector).catch(error => console.log('Error to get buttonSubmitCheck')).then(async res => {
+			if (res) {
+				await Browser.closeMutilBrowserAndPage([page, newPage]).catch(error => console.log('Error to close mutil page and newpage'));
+				throw new Error('Login Succes but occur checkpoint!')
+			}
+		});
+
+		return Promise.all([loginError, buttonSubmitCheck, buttonAccept]);
 	}
 
 	static waitForSelector(page, selector, arr) {

@@ -1,4 +1,5 @@
-import Browser from './browser';
+import Browser from './utils/browser';
+import fetch from './utils/fetch';
 import models from './models/index';
 
 const { Users, sclSocialAccounts } = models;
@@ -6,10 +7,11 @@ const { Users, sclSocialAccounts } = models;
 // sclSocialAccounts.findAll().then(res => console.log(res));
 
 export default {
-	startGetToken: async () => {
+	startGetToken: async (cycleTime) => {
 		let socialAccounts = Array.from(await sclSocialAccounts.findAll());
-		socialAccounts = socialAccounts.filter(e => e.saPassword && e.saLoginName).map(e => { return { password: e.saPassword, email: e.saLoginName, saId: e.saId } });
+		socialAccounts = socialAccounts.filter(e => e.saPassword && e.saLoginName && e.saTokenExpired != 0).map(e => { return { password: e.saPassword, email: e.saLoginName, saId: e.saId } });
 		
+		console.log(socialAccounts);
 		const inforAccounts = []
 
 		const MAX_PAGE = 5;
@@ -24,16 +26,22 @@ export default {
 		});
 
 		const newInforAccounts = Array.from(await Browser.getMultiToken(inforAccounts));
-		const newSocialAccounts = newInforAccounts.reduce((arr, subArr) => arr.concat(...subArr), []).filter(e => e.saToken);
+		const newSocialAccounts = newInforAccounts.reduce((arr, subArr) => arr.concat(...subArr), []).map(e => {
+			const update = {};
+			if(e.saTokenExpired == 3) {
+				update.saTokenExpiredDescription = e.saTokenExpiredDescription;
+			} else {
+				update.saToken = e.saToken;
+			}
+
+			return [e.saId, { ...update, saTokenExpired: e.saTokenExpired }];
+		});
 		return await Promise.all(
 			newSocialAccounts.map(e => { console.log(e); return sclSocialAccounts.update(
-				{
-					saToken: e.saToken,
-					saTokenExpired: 0
-				},
+				e[1],
 				{
 					where: {
-						saId: e.saId
+						saId: e[0]
 					}
 				}).catch(error => error)
 			})

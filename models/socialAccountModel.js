@@ -89,14 +89,14 @@ module.exports = function(sequelize, DataTypes) {
 			type: DataTypes.STRING(255),
 			allowNull: true,
 			field: 'Sa_Link'
-        },
-        saPassword: {
+		},
+		saPassword: {
 			type: DataTypes.STRING(255),
 			allowNull: true,
 			field: 'Sa_Password'
-        },
-        saLoginName: {
-			type: DataTypes.STRING(255),
+		},
+		saLoginName: {
+			type: DataTypes.STRING(100),
 			allowNull: true,
 			field: 'Sa_LoginName'
 		},
