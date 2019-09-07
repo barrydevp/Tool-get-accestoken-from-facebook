@@ -90,7 +90,7 @@ export default class Browser {
 				const page = await browser.newPage();
 
 				if(!page.isClosed()){
-					await page.goto('http://localhost:8888/');
+					await page.goto(config.URL_LOGIN_FACEBOOK);
 
 				  let newPage = await Browser.getPopupPage(page);
 

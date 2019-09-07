@@ -1,8 +1,20 @@
 import kue from 'kue';
+import logger from './logger';
+import config from '../config';
 
 export default class Queue {
   constructor() {
-    const queue = kue.createQueue();
+    this.queue = kue.createQueue({
+      prefix: 'q',
+      redis: {
+        port: config.REDIS_PORT,
+        host: config.REDIS_HOST,
+        // db: 3, // if provided select a non-default redis db
+        options: {
+          // see https://github.com/mranney/node_redis#rediscreateclient
+        }
+      }
+    });
   }
 
   newProcess(name, callback) {
@@ -10,14 +22,18 @@ export default class Queue {
       this.queue.process(name, function (job, done) {
         /* carry out all the job function here */
         console.log("process job: ", job.id)
-        callback && callback().then(res => done()).catch(err => done(err));
+        logger.log('info', "process job: " + job.id);
+        callback && callback().then(res => done()).catch(error => {
+          logger.log('error', 'Callback in queue fail\n' + 'Error: ' + error.message);
+          done(error)
+        });
       });
     }
   }
 
   newJob(name, option) {
     if(name){
-      const { priority } = option;
+      const { priority } = option || {};
 
       const job = this.queue.create(name, {
         name: name,
@@ -25,10 +41,12 @@ export default class Queue {
 
       job
         .on('complete', function () {
-          console.log('Job', job.id, 'with name', job.data.name, 'is done');
+          logger.log('info', 'Job ' + job.id + ' with name ' + job.data.name + ' is done');
+          console.log('Job', job.id, 'with name ', job.data.name, ' is done');
         })
         .on('failed', function () {
-          console.log('Job', job.id, 'with name', job.data.name, 'has failed');
+          logger.log('info', 'Job ' + job.id + ' with name ' + job.data.name + ' has failed');
+          console.log('Job ', job.id, ' with name ', job.data.name, ' has failed');
         })
 
       job.save();
@@ -41,8 +59,10 @@ export default class Queue {
     if(name && callback) {
       this.newProcess(name, callback);
 
+      const newJob = this.newJob.bind(this);
+
       const timer = setInterval(function () {
-        this.newJob(name, option);
+        newJob(name, option);
       }, milliseconds);
 
       return timer;

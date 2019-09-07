@@ -1,5 +1,12 @@
 {
+  "name": "cdn-maxping-cms-api",
+  "version": "1.0.1",
+  "description": "cms api for web",
+  "license": "MIT",
+  "author": "barrydevp",
   "scripts": {
+    "start": "cross-env NODE_ENV=production nodemon dist/server.js -w dist/server.js -w .env.production",
+    "build": "cross-env NODE_ENV=production webpack --config webpack.config.production.js",
     "dev": "nodemon --exec babel-node app.js",
     "test": "nodemon --exec babel-node test.js"
   },
@@ -8,14 +15,28 @@
     "dotenv": "^8.1.0",
     "express": "^4.17.1",
     "kue": "^0.11.6",
-    "mysql2": "^1.7.0",
     "puppeteer": "^1.19.0",
-    "sequelize": "^5.18.1"
+    "winston": "^3.2.1",
+    "winston-daily-rotate-file": "^3.8.0"
   },
   "devDependencies": {
+    "@babel/cli": "^7.2.3",
     "@babel/core": "^7.5.5",
     "@babel/node": "^7.5.5",
+    "@babel/runtime": "^7.5.5",
+    "@babel/plugin-proposal-object-rest-spread": "^7.4.4",
+    "@babel/plugin-syntax-dynamic-import": "^7.2.0",
+    "@babel/plugin-transform-regenerator": "^7.4.5",
+    "@babel/plugin-transform-runtime": "^7.4.4",
+    "@babel/polyfill": "^7.4.4",
     "@babel/preset-env": "^7.5.5",
-    "nodemon": "^1.19.1"
+    "@babel/register": "^7.4.0",
+    "babel-loader": "^8.0.6",
+    "copy-webpack-plugin": "^4.5.1",
+    "cross-env": "^5.2.0",
+    "nodemon": "^1.19.1",
+    "webpack": "^4.19.0",
+    "webpack-cli": "^3.1.0",
+    "webpack-node-externals": "^1.7.2"
   }
 }
